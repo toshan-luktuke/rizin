@@ -161,6 +161,7 @@ typedef struct {
 	bool show_calls;
 	bool show_cmtflgrefs;
 	bool show_cmtesil;
+	bool show_cmt_il;
 	bool show_cycles;
 	bool show_refptr;
 	bool show_stackptr;
@@ -779,6 +780,7 @@ static RDisasmState *ds_init(RzCore *core) {
 	ds->show_family = rz_config_get_b(core->config, "asm.family");
 	ds->cmtcol = rz_config_get_i(core->config, "asm.cmt.col");
 	ds->show_cmtesil = rz_config_get_b(core->config, "asm.cmt.esil");
+	ds->show_cmt_il = rz_config_get_b(core->config, "asm.cmt.il");
 	ds->show_cmtflgrefs = rz_config_get_b(core->config, "asm.cmt.flgrefs");
 	ds->show_cycles = rz_config_get_b(core->config, "asm.cycles");
 	ds->show_stackptr = rz_config_get_b(core->config, "asm.stackptr");
@@ -5322,6 +5324,23 @@ toro:
 					ds_comment(ds, true, "; %s", esil);
 				}
 			}
+			if (ds->show_cmt_il && ds->analop.il_op) {
+				RzStrBuf sb;
+				rz_strbuf_init(&sb);
+				rz_il_op_effect_stringify(ds->analop.il_op, &sb);
+				ds_pre_line(ds);
+				ds_setup_print_pre(ds, false, false);
+				rz_cons_strcat("      ");
+				ds_print_lines_left(ds);
+				ds_begin_comment(ds);
+				if (ds->show_color) {
+					ds_comment(ds, true, "; %s%s%s",
+						ds->pal_comment, rz_strbuf_get(&sb), Color_RESET);
+				} else {
+					ds_comment(ds, true, "; %s", rz_strbuf_get(&sb));
+				}
+				rz_strbuf_fini(&sb);
+			}
 		}
 		rz_core_seek_arch_bits(core, ds->at); // slow but safe
 		ds->has_description = false;
@@ -5561,6 +5580,18 @@ toro:
 					} else {
 						ds_comment(ds, true, "; %s", esil);
 					}
+				}
+				if (ds->show_cmt_il && ds->analop.il_op) {
+					RzStrBuf sb;
+					rz_strbuf_init(&sb);
+					rz_il_op_effect_stringify(ds->analop.il_op, &sb);
+					if (ds->show_color) {
+						ds_comment(ds, true, "; %s%s%s",
+							ds->pal_comment, rz_strbuf_get(&sb), Color_RESET);
+					} else {
+						ds_comment(ds, true, "; %s", rz_strbuf_get(&sb));
+					}
+					rz_strbuf_fini(&sb);
 				}
 				ds_print_ptr(ds, len + 256, idx);
 				ds_print_sysregs(ds);

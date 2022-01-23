@@ -101,8 +101,8 @@ a "mrc p4, 4, r5, c2, c2" 125492ee
 a "mrc p3, 0, r5, c3, c5, 6" d55313ee
 a "bic r1, r2, r3" 0310c2e1
 a "bic r3, r2" 0230c3e1
-a "strb r2, [r3, r4]" 0420c3e7
-a "strb r2, [r3, 6]" 0620c3e5
+ad "strb r2, [r3, r4]" 0420c3e7 0x0 (store 0 (+ (var r3) (var r4)) (cast 8 false (var r2)))
+ad "strb r2, [r3, 6]" 0620c3e5 0x0 (store 0 (+ (var r3) (bv 32 0x6)) (cast 8 false (var r2)))
 a "strbt r3, [r7]" 0030e7e4
 a "strbt r1, [r2]" 0010e2e4
 a "strd r6, r7, [r7, 86]" f665c7e1
@@ -111,23 +111,43 @@ a "strexb r2, r5, [r6]" 952fc6e1
 a "strexb r5, r2, [r4]" 925fc4e1
 a "strexh r2, r5, [r6]" 952fe6e1
 a "strexh r5, r2, [r4]" 925fe4e1
-a "strh r5, [r2, r4]" b45082e1
+ad "strh r5, [r2, r4]" b45082e1 0x0 (storew 0 (+ (var r2) (var r4)) (cast 16 false (var r5)))
 aB "strxh r5, [r2, 4]" b450c2e1
-d "addeq r1, r1, r0" 00108100
+d "addeq r1, r1, r0" 00108100 0x0 (branch (var zf) (set r1 (+ (var r1) (var r0))) nop)
 d "addeq r1, r1, r2, lsl 2" 02118100
-d "addne r1, r1, ip" 0c108110
+d "addne r1, r1, ip" 0c108110 0x0 (branch (! (var zf)) (set r1 (+ (var r1) (var r12))) nop)
 d "addne r1, r1, r0, lsl 2" 00118110
+ad "add pc, pc, 0x10" 10f08fe2 0x200 (jmp (+ (bv 32 0x208) (bv 32 0x10)))
+ad "adc r0, r1, 0x2a" 2a00a1e2 0x0 (set r0 (+ (+ (var r1) (bv 32 0x2a)) (ite (var cf) (bv 32 0x1) (bv 32 0x0))))
+d "adcs r0, r1, 0x2a" 2a00b1e2 0x0 (seq (set a (var r1)) (set b (bv 32 0x2a)) (set r0 (+ (+ (var r1) (bv 32 0x2a)) (ite (var cf) (bv 32 0x1) (bv 32 0x0)))) (set cf (msb (+ (+ (cast 33 false (var a)) (cast 33 false (var b))) (ite (var cf) (bv 33 0x1) (bv 33 0x0))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var r0))))) (set zf (is_zero (var r0))) (set nf (msb (var r0))))
+ad "adds r0, r1, 0x2a" 2a0091e2 0x0 (seq (set a (var r1)) (set b (bv 32 0x2a)) (set r0 (+ (var r1) (bv 32 0x2a))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var r0))))) (set zf (is_zero (var r0))) (set nf (msb (var r0))))
 d "andeq r0, r0, 1" 01000002
 d "andeq r3, r5, 0x80000000" 02310502
 d "andne r3, r3, r2" 02300310
 d "andne ip, ip, r7" 07c00c10
 d "asreq r0, ip, 0x1f" cc0fa001
 d "asrne r0, r4, 0x1f" c40fa011
-d "beq 8" 0000000a
+d "beq 8" 0000000a 0x0 (branch (var zf) (jmp (bv 32 0x8)) nop)
 d "biceq r3, r3, 7" 0730c303
 d "blne 0x1900" 3E06001B
 d "bl 0x1900" 3e0600eb
-d "b 0x1900" 3e0600ea
+d "b 0x1900" 3e0600ea 0x0 (jmp (bv 32 0x1900))
+d "b 0x2900" 3e0600ea 0x1000 (jmp (bv 32 0x2900))
+d "beq 0x1900" 3e06000a 0x0 (branch (var zf) (jmp (bv 32 0x1900)) nop)
+d "bne 0x1900" 3e06001a 0x0 (branch (! (var zf)) (jmp (bv 32 0x1900)) nop)
+d "bhs 0x1900" 3e06002a 0x0 (branch (var cf) (jmp (bv 32 0x1900)) nop)
+d "blo 0x1900" 3e06003a 0x0 (branch (! (var cf)) (jmp (bv 32 0x1900)) nop)
+d "bmi 0x1900" 3e06004a 0x0 (branch (var nf) (jmp (bv 32 0x1900)) nop)
+d "bpl 0x1900" 3e06005a 0x0 (branch (! (var nf)) (jmp (bv 32 0x1900)) nop)
+d "bvs 0x1900" 3e06006a 0x0 (branch (var vf) (jmp (bv 32 0x1900)) nop)
+d "bvc 0x1900" 3e06007a 0x0 (branch (! (var vf)) (jmp (bv 32 0x1900)) nop)
+d "bhi 0x1900" 3e06008a 0x0 (branch (&& (var cf) (! (var zf))) (jmp (bv 32 0x1900)) nop)
+d "bls 0x1900" 3e06009a 0x0 (branch (&& (! (var cf)) (var zf)) (jmp (bv 32 0x1900)) nop)
+d "bge 0x1900" 3e0600aa 0x0 (branch (! (^^ (var nf) (var vf))) (jmp (bv 32 0x1900)) nop)
+d "blt 0x1900" 3e0600ba 0x0 (branch (^^ (var nf) (var vf)) (jmp (bv 32 0x1900)) nop)
+d "bgt 0x1900" 3e0600ca 0x0 (branch (&& (! (var zf)) (! (^^ (var nf) (var vf)))) (jmp (bv 32 0x1900)) nop)
+d "ble 0x1900" 3e0600da 0x0 (branch (&& (var zf) (^^ (var nf) (var vf))) (jmp (bv 32 0x1900)) nop)
+d "b 0x1900" 3e0600ea 0x0 (jmp (bv 32 0x1900))
 d "bxeq lr" 1eff2f01
 d "bxne lr" 1eff2f11
 d "clzne r5, sl" 1a5f6f11
@@ -192,6 +212,18 @@ d "uxtbeq r1, r0" 7010ef06
 d "uxtheq r0, r0" 7000ff06
 d "vstreq d0, [r0]" 000b800d
 d "blne 0x1900" 8374211b 0xff7a46ec
+ad "mov r0, 0x2a" 2a00a0e3 0x0 (set r0 (bv 32 0x2a))
+ad "movs r1, 0" 0010b0e3 0x0 (seq (set r1 (bv 32 0x0)) (set zf (is_zero (bv 32 0x0))) (set nf (msb (bv 32 0x0))))
+d "movs r1, 0, 2" 0011b0e3 0x0 (seq (set r1 (bv 32 0x0)) (set cf false) (set zf (is_zero (bv 32 0x0))) (set nf (msb (bv 32 0x0))))
+d "movs r1, 1, 30" 011fb0e3 0x0 (seq (set r1 (bv 32 0x1)) (set cf false) (set zf (is_zero (bv 32 0x1))) (set nf (msb (bv 32 0x1))))
+d "movs r1, 4" 0410b0e3 0x0 (seq (set r1 (bv 32 0x4)) (set zf (is_zero (bv 32 0x4))) (set nf (msb (bv 32 0x4))))
+d "movs r1, 0x40000000" 0111b0e3 0x0 (seq (set r1 (bv 32 0x40000000)) (set cf false) (set zf (is_zero (bv 32 0x40000000))) (set nf (msb (bv 32 0x40000000))))
+d "movs r1, 0x80000000" 0211b0e3 0x0 (seq (set r1 (bv 32 0x80000000)) (set cf true) (set zf (is_zero (bv 32 0x80000000))) (set nf (msb (bv 32 0x80000000))))
+ad "movs r0, 0x2a" 2a00b0e3 0x0 (seq (set r0 (bv 32 0x2a)) (set zf (is_zero (bv 32 0x2a))) (set nf (msb (bv 32 0x2a))))
+ad "mov pc, 0x2a" 2af0a0e3 0x0 (jmp (bv 32 0x2a))
+ad "movs pc, 0x2a" 2af0b0e3
+ad "mov r1, r6" 0610a0e1 0x0 (set r1 (var r6))
+ad "movs r1, r6" 0610b0e1 0x0 (seq (set r1 (var r6)) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
 aB "addeq r1, r1, r2, lsl 2" 02118100
 a "addne r1, r1, ip" 0c108110
 aB "addne r1, r1, r0, lsl 2" 00118110
@@ -273,5 +305,36 @@ a "asr r4, r5, r0" 5540a0e1
 a "ror r7, r6, r1" 7671a0e1
 a "ldr r0, [r0]" 000090e5
 a "ldr r1, [r2]" 001092e5
-a "str r0, [r0]" 000080e5
-a "str r1, [r2]" 001082e5
+ad "str r0, [r0]" 000080e5 0x0 (storew 0 (var r0) (var r0))
+ad "str r1, [r2]" 001082e5 0x0 (storew 0 (var r2) (var r1))
+d "ldr r2, [fp, -0xc]" 0c201be5 0x200 (set r2 (loadw 0 32 (- (var r11) (bv 32 0xc))))
+ad "ldr r1, [r7]" 001097e5 0x200 (set r1 (loadw 0 32 (var r7)))
+ad "ldr pc, [r8]" 00f098e5 0x200 (jmp (loadw 0 32 (var r8)))
+d "ldr r1, [r2, r3]" 031092e7 0x200 (set r1 (loadw 0 32 (+ (var r2) (var r3))))
+d "ldr r1, [r2, r3, lsl 4]" 031292e7 0x200 (set r1 (loadw 0 32 (+ (var r2) (<< (var r3) (bv 5 0x4) false))))
+d "ldr r0, [r1, r4, lsr 5]" a40291e7 0x0 (set r0 (loadw 0 32 (+ (var r1) (>> (var r4) (bv 5 0x5) false))))
+d "ldr r0, [r1, r4, asr 5]" c40291e7 0x0 (set r0 (loadw 0 32 (+ (var r1) (>> (var r4) (bv 5 0x5) (msb (var r4))))))
+d "ldr r0, [r1, r4, ror 5]" e40291e7 0x0 (set r0 (loadw 0 32 (+ (var r1) (| (>> (var r4) (bv 5 0x5) false) (<< (var r4) (bv 5 0x1b) false)))))
+d "ldr r0, [r1, r4, rrx]" 640091e7 0x0 (set r0 (loadw 0 32 (+ (var r1) (>> (var r4) (bv 5 0x1) (var cf)))))
+d "ldrb r2, [r3]" 0020d3e5 0x0 (set r2 (cast 32 false (load 0 (var r3))))
+d "ldrh r0, [r1]" b000d1e1 0x0 (set r0 (cast 32 false (loadw 0 16 (var r1))))
+d "ldr r6, [pc, 0x48]" 48609fe5 0x10660 (set r6 (loadw 0 32 (+ (bv 32 0x10668) (bv 32 0x48))))
+d "ldr r2, [fp, -0x10]!" 10203be5 0x0 (seq (set r11 (- (var r11) (bv 32 0x10))) (set r2 (loadw 0 32 (var r11))))
+d "ldr r0, [r1], 4" 040091e4 0x0 (seq (set r0 (loadw 0 32 (var r1))) (set r1 (+ (var r1) (bv 32 0x4))))
+d "ldrt r0, [r1], 0" 0000b1e4 0x0 (seq (set r0 (loadw 0 32 (var r1))) (set r1 (+ (var r1) (bv 32 0x0))))
+d "ldrt r0, [r1], 4" 0400b1e4 0x0 (seq (set r0 (loadw 0 32 (var r1))) (set r1 (+ (var r1) (bv 32 0x4))))
+d "ldrbt r0, [r1], 4" 0400f1e4 0x0 (seq (set r0 (cast 32 false (load 0 (var r1)))) (set r1 (+ (var r1) (bv 32 0x4))))
+d "ldrht r0, [r1], 4" b400f1e0 0x0 (seq (set r0 (cast 32 false (loadw 0 16 (var r1)))) (set r1 (+ (var r1) (bv 32 0x4))))
+d "ldr pc, [r1], 4" 04f091e4 0x0 (seq (set tgt (loadw 0 32 (var r1))) (set r1 (+ (var r1) (bv 32 0x4))) (jmp (var tgt)))
+d "ldr pc, [r1], -4" 04f011e4 0x0 (seq (set tgt (loadw 0 32 (var r1))) (set r1 (- (var r1) (bv 32 0x4))) (jmp (var tgt)))
+d "ldr pc, [r1, 4]" 04f091e5 0x0 (jmp (loadw 0 32 (+ (var r1) (bv 32 0x4))))
+d "ldr pc, [r1, 4]!" 04f0b1e5 0x0 (seq (set r1 (+ (var r1) (bv 32 0x4))) (jmp (loadw 0 32 (var r1))))
+d "ldr pc, [r1, -8]" 08f011e5 0x0 (jmp (loadw 0 32 (- (var r1) (bv 32 0x8))))
+d "ldr pc, [r1, -8]!" 08f031e5 0x0 (seq (set r1 (- (var r1) (bv 32 0x8))) (jmp (loadw 0 32 (var r1))))
+d "str fp, [sp, -4]!" 04b02de5 0x0 (seq (set sp (- (var sp) (bv 32 0x4))) (storew 0 (var sp) (var r11)))
+d "str fp, [sp], 4" 04b08de4 0x0 (seq (storew 0 (var sp) (var r11)) (set sp (+ (var sp) (bv 32 0x4))))
+d "str fp, [sp], -4" 04b00de4 0x0 (seq (storew 0 (var sp) (var r11)) (set sp (- (var sp) (bv 32 0x4))))
+d "strt fp, [sp], -4" 04b02de4 0x0 (seq (storew 0 (var sp) (var r11)) (set sp (- (var sp) (bv 32 0x4))))
+d "strt fp, [sp], 4" 04b0ade4 0x0 (seq (storew 0 (var sp) (var r11)) (set sp (+ (var sp) (bv 32 0x4))))
+d "strbt fp, [sp], 4" 04b0ede4 0x0 (seq (store 0 (var sp) (cast 8 false (var r11))) (set sp (+ (var sp) (bv 32 0x4))))
+d "strht fp, [sp], 4" b4b0ede0 0x0 (seq (storew 0 (var sp) (cast 16 false (var r11))) (set sp (+ (var sp) (bv 32 0x4))))

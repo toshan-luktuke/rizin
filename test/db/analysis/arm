@@ -942,6 +942,7 @@ sign: false
 type: add
 cycles: 1
 esil: 0,sp,+,0xffffffff,&,r7,=
+rzil: (set r7 (+ (var sp) (bv 32 0x0)))
 family: cpu
 EOF
 RUN
