@@ -30,6 +30,8 @@
 #undef LOGAND
 #undef LOGOR
 #undef LOGXOR
+#undef LOGNOT
+#undef NEG
 
 #undef IS_ZERO
 #undef MSB

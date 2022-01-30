@@ -121,6 +121,9 @@ ad "add pc, pc, 0x10" 10f08fe2 0x200 (jmp (+ (bv 32 0x208) (bv 32 0x10)))
 ad "adc r0, r1, 0x2a" 2a00a1e2 0x0 (set r0 (+ (+ (var r1) (bv 32 0x2a)) (ite (var cf) (bv 32 0x1) (bv 32 0x0))))
 d "adcs r0, r1, 0x2a" 2a00b1e2 0x0 (seq (set a (var r1)) (set b (bv 32 0x2a)) (set r0 (+ (+ (var r1) (bv 32 0x2a)) (ite (var cf) (bv 32 0x1) (bv 32 0x0)))) (set cf (msb (+ (+ (cast 33 false (var a)) (cast 33 false (var b))) (ite (var cf) (bv 33 0x1) (bv 33 0x0))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var r0))))) (set zf (is_zero (var r0))) (set nf (msb (var r0))))
 ad "adds r0, r1, 0x2a" 2a0091e2 0x0 (seq (set a (var r1)) (set b (bv 32 0x2a)) (set r0 (+ (var r1) (bv 32 0x2a))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var r0))))) (set zf (is_zero (var r0))) (set nf (msb (var r0))))
+d "sub sp, sp, 0x1c" 1cd04de2 0x0 (set sp (- (var sp) (bv 32 0x1c)))
+d "sub r6, r7, r5" 056047e0 0x0 (set r6 (- (var r7) (var r5)))
+d "subs r6, r7, r5" 056057e0 0x0 (seq (set a (var r7)) (set b (var r5)) (set r6 (- (var r7) (var r5))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var r6))))) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
 d "andeq r0, r0, 1" 01000002
 d "andeq r3, r5, 0x80000000" 02310502
 d "andne r3, r3, r2" 02300310

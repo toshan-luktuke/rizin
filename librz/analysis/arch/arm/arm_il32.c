@@ -258,13 +258,14 @@ err:
 }
 
 /**
- * Capstone: ARM_INS_ADD, ARM_INS_ADC
- * ARM: add, adds, adc, adcs
+ * Capstone: ARM_INS_ADD, ARM_INS_ADC, ARM_INS_SUB
+ * ARM: add, adds, adc, adcs, sub, subs
  */
-static RzILOpEffect *add(cs_insn *insn, bool is_thumb) {
+static RzILOpEffect *add_sub(cs_insn *insn, bool is_thumb) {
 	if (!ISREG(0)) {
 		return NULL;
 	}
+	bool is_sub = insn->id == ARM_INS_SUB;
 	RzILOpBitVector *a = ARG(OPCOUNT() > 2 ? 1 : 0);
 	RzILOpBitVector *b = ARG(OPCOUNT() > 2 ? 2 : 1);
 	if (!a || !b) {
@@ -272,7 +273,7 @@ static RzILOpEffect *add(cs_insn *insn, bool is_thumb) {
 		rz_il_op_pure_free(b);
 		return NULL;
 	}
-	RzILOpBitVector *res = ADD(a, b);
+	RzILOpBitVector *res = is_sub ? SUB(a, b) : ADD(a, b);
 	bool with_carry = insn->id == ARM_INS_ADC;
 	if (with_carry) {
 		res = ADD(res, ITE(VARG("cf"), U32(1), U32(0)));
@@ -293,17 +294,27 @@ static RzILOpEffect *add(cs_insn *insn, bool is_thumb) {
 		update_flags = false;
 	}
 	if (update_flags) {
-		RzILOpBitVector *extended_res = ADD(UNSIGNED(33, VARL("a")), UNSIGNED(33, VARL("b")));
-		if (with_carry) {
-			extended_res = ADD(extended_res, ITE(VARG("cf"), UN(33, 1), UN(33, 0)));
+		if (is_sub) {
+			return SEQ6(
+				SETL("a", DUP(a)),
+				SETL("b", DUP(b)),
+				set,
+				SETG("cf", ULT(VARL("a"), VARL("b"))),
+				SETG("vf", AND(XOR(MSB(VARL("a")), MSB(VARL("b"))), XOR(MSB(VARL("a")), MSB(REG(0))))),
+				update_flags_zn(REG(0)));
+		} else {
+			RzILOpBitVector *extended_res = ADD(UNSIGNED(33, VARL("a")), UNSIGNED(33, VARL("b")));
+			if (with_carry) {
+				extended_res = ADD(extended_res, ITE(VARG("cf"), UN(33, 1), UN(33, 0)));
+			}
+			return SEQ6(
+				SETL("a", DUP(a)),
+				SETL("b", DUP(b)),
+				set,
+				SETG("cf", MSB(extended_res)),
+				SETG("vf", AND(INV(XOR(MSB(VARL("a")), MSB(VARL("b")))), XOR(MSB(VARL("a")), MSB(REG(0))))),
+				update_flags_zn(REG(0)));
 		}
-		return SEQ6(
-			SETL("a", DUP(a)),
-			SETL("b", DUP(b)),
-			set,
-			SETG("cf", MSB(extended_res)),
-			SETG("vf", AND(INV(XOR(MSB(VARL("a")), MSB(VARL("b")))), XOR(MSB(VARL("a")), MSB(REG(0))))),
-			update_flags_zn(REG(0)));
 	}
 	return set;
 }
@@ -443,7 +454,8 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 		return mov(insn, is_thumb);
 	case ARM_INS_ADD:
 	case ARM_INS_ADC:
-		return add(insn, is_thumb);
+	case ARM_INS_SUB:
+		return add_sub(insn, is_thumb);
 	case ARM_INS_LDR:
 	case ARM_INS_LDRB:
 	case ARM_INS_LDRH:

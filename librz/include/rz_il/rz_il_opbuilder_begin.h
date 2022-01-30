@@ -69,6 +69,8 @@
 #define LOGAND(x, y)       rz_il_op_new_log_and(x, y)
 #define LOGOR(x, y)        rz_il_op_new_log_or(x, y)
 #define LOGXOR(x, y)       rz_il_op_new_log_xor(x, y)
+#define LOGNOT(x)          rz_il_op_new_log_not(x)
+#define NEG(x)             rz_il_op_new_neg(x)
 
 #define IS_ZERO(x) rz_il_op_new_is_zero(x)
 #define MSB(x)     rz_il_op_new_msb(x)
