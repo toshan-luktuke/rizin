@@ -227,6 +227,8 @@ ad "mov pc, 0x2a" 2af0a0e3 0x0 (jmp (bv 32 0x2a))
 ad "movs pc, 0x2a" 2af0b0e3
 ad "mov r1, r6" 0610a0e1 0x0 (set r1 (var r6))
 ad "movs r1, r6" 0610b0e1 0x0 (seq (set r1 (var r6)) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
+ad "movw r3, 0x1034" 343001e3 0x0 (set r3 (bv 32 0x1034))
+ad "movt r3, 2" 023040e3 0x0 (set r3 (append (bv 16 0x2) (cast 16 false (var r3))))
 aB "addeq r1, r1, r2, lsl 2" 02118100
 a "addne r1, r1, ip" 0c108110
 aB "addne r1, r1, r0, lsl 2" 00118110

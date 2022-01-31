@@ -219,8 +219,8 @@ static RzILOpEffect *update_flags_zn(RzILOpBitVector *v) {
 }
 
 /**
- * Capstone: ARM_INS_MOV
- * ARM: mov, movs
+ * Capstone: ARM_INS_MOV, ARM_INS_MOVW
+ * ARM: mov, movs, movw
  */
 static RzILOpEffect *mov(cs_insn *insn, bool is_thumb) {
 	if (!ISREG(0) || (!ISIMM(1) && !ISREG(1))) {
@@ -255,6 +255,21 @@ err:
 	rz_il_op_pure_free(carry);
 	rz_il_op_pure_free(val);
 	return NULL;
+}
+
+/**
+ * Capstone: ARM_INS_MOVT
+ * ARM: movt
+ */
+static RzILOpEffect *movt(cs_insn *insn, bool is_thumb) {
+	if (!ISREG(0) || !ISIMM(1)) {
+		return NULL;
+	}
+	RzILOpPure *regval = REG(0);
+	if (!regval) {
+		return NULL;
+	}
+	return write_reg(REGID(0), APPEND(U16(IMM(1)), UNSIGNED(16, regval)));
 }
 
 /**
@@ -450,8 +465,12 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_B: {
 		RzILOpBitVector *dst = ARG(0);
 		return dst ? JMP(dst) : NULL;
+	}
 	case ARM_INS_MOV:
+	case ARM_INS_MOVW:
 		return mov(insn, is_thumb);
+	case ARM_INS_MOVT:
+		return movt(insn, is_thumb);
 	case ARM_INS_ADD:
 	case ARM_INS_ADC:
 	case ARM_INS_SUB:
@@ -470,7 +489,6 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_STRBT:
 	case ARM_INS_STRHT:
 		return str(insn, is_thumb);
-	}
 	default:
 		return NULL;
 	}
