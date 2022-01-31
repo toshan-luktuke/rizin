@@ -206,7 +206,8 @@ static RzILOpBitVector *arg(cs_insn *insn, bool is_thumb, int n, RZ_NULLABLE RzI
 	return NULL;
 }
 
-#define ARG(n) arg(insn, is_thumb, n, NULL)
+#define ARG_C(n, carry) arg(insn, is_thumb, n, carry)
+#define ARG(n)          ARG_C(n, NULL)
 
 /**
  * zf := v == 0
@@ -228,7 +229,7 @@ static RzILOpEffect *mov(cs_insn *insn, bool is_thumb) {
 	}
 	bool update_flags = insn->detail->arm.update_flags;
 	RzILOpBool *carry;
-	RzILOpPure *val = arg(insn, is_thumb, 1, update_flags ? &carry : NULL);
+	RzILOpPure *val = ARG_C(1, update_flags ? &carry : NULL);
 	if (!val) {
 		return NULL;
 	}
@@ -460,6 +461,49 @@ static RzILOpEffect *str(cs_insn *insn, bool is_thumb) {
 	return eff;
 }
 
+/**
+ * Capstone: ARM_INS_EOR
+ * ARM: eor, eors
+ */
+static RzILOpEffect *eor(cs_insn *insn, bool is_thumb) {
+	if (!ISREG(0)) {
+		return NULL;
+	}
+	bool update_flags = insn->detail->arm.update_flags;
+	RzILOpBitVector *a = ARG(1);
+	RzILOpBool *carry = NULL;
+	RzILOpBitVector *b = ARG_C(2, update_flags ? &carry : NULL);
+	if (!a || !b) {
+		rz_il_op_pure_free(a);
+		rz_il_op_pure_free(b);
+		rz_il_op_pure_free(carry);
+		return NULL;
+	}
+	RzILOpBitVector *res = LOGXOR(a, b);
+	if (REGID(0) == ARM_REG_PC) {
+		if (insn->detail->arm.update_flags) {
+			// TODO: ALUExceptionReturn()
+			rz_il_op_pure_free(res);
+			rz_il_op_pure_free(carry);
+			return NULL;
+		} else {
+			return JMP(res);
+		}
+	}
+	RzILOpEffect *eff = write_reg(REGID(0), res);
+	if (update_flags) {
+		if (carry) {
+			return SEQ3(
+				eff,
+				SETG("cf", carry),
+				update_flags_zn(REG(0)));
+		} else {
+			return SEQ2(eff, update_flags_zn(REG(0)));
+		}
+	}
+	return eff;
+}
+
 static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb) {
 	switch (insn->id) {
 	case ARM_INS_B: {
@@ -489,6 +533,8 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_STRBT:
 	case ARM_INS_STRHT:
 		return str(insn, is_thumb);
+	case ARM_INS_EOR:
+		return eor(insn, is_thumb);
 	default:
 		return NULL;
 	}
