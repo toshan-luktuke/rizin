@@ -211,6 +211,38 @@ static RzILOpEffect *update_flags_zn(RzILOpBitVector *v) {
 }
 
 /**
+ * Carry resulting from a + b (+ cf)
+ */
+static RZ_OWN RzILOpBool *add_carry(RZ_OWN RzILOpBitVector *a, RZ_OWN RzILOpBitVector *b, bool with_carry) {
+	RzILOpBitVector *r = ADD(UNSIGNED(33, a), UNSIGNED(33, b));
+	if (with_carry) {
+		r = ADD(r, ITE(VARG("cf"), UN(33, 1), UN(33, 0)));
+	}
+	return MSB(r);
+}
+
+/**
+ * Carry resulting from a - b
+ */
+static RZ_OWN RzILOpBool *sub_carry(RZ_OWN RzILOpBitVector *a, RZ_OWN RzILOpBitVector *b) {
+	return ULT(a, b);
+}
+
+/**
+ * Overflow (V) resulting from a + b
+ */
+static RZ_OWN RzILOpBool *add_overflow(RZ_OWN RzILOpBitVector *a, RZ_OWN RzILOpBitVector *b, RZ_OWN RzILOpBitVector *res) {
+	return AND(INV(XOR(MSB(a), MSB(b))), XOR(MSB(DUP(a)), MSB(res)));
+}
+
+/**
+ * Overflow (V) resulting from a - b
+ */
+static RZ_OWN RzILOpBool *sub_overflow(RZ_OWN RzILOpBitVector *a, RZ_OWN RzILOpBitVector *b, RZ_OWN RzILOpBitVector *res) {
+	return AND(XOR(MSB(a), MSB(b)), XOR(MSB(DUP(a)), MSB(res)));
+}
+
+/**
  * Capstone: ARM_INS_MOV, ARM_INS_MOVW
  * ARM: mov, movs, movw
  */
@@ -301,27 +333,13 @@ static RzILOpEffect *add_sub(cs_insn *insn, bool is_thumb) {
 		update_flags = false;
 	}
 	if (update_flags) {
-		if (is_sub) {
-			return SEQ6(
-				SETL("a", DUP(a)),
-				SETL("b", DUP(b)),
-				set,
-				SETG("cf", ULT(VARL("a"), VARL("b"))),
-				SETG("vf", AND(XOR(MSB(VARL("a")), MSB(VARL("b"))), XOR(MSB(VARL("a")), MSB(REG(0))))),
-				update_flags_zn(REG(0)));
-		} else {
-			RzILOpBitVector *extended_res = ADD(UNSIGNED(33, VARL("a")), UNSIGNED(33, VARL("b")));
-			if (with_carry) {
-				extended_res = ADD(extended_res, ITE(VARG("cf"), UN(33, 1), UN(33, 0)));
-			}
-			return SEQ6(
-				SETL("a", DUP(a)),
-				SETL("b", DUP(b)),
-				set,
-				SETG("cf", MSB(extended_res)),
-				SETG("vf", AND(INV(XOR(MSB(VARL("a")), MSB(VARL("b")))), XOR(MSB(VARL("a")), MSB(REG(0))))),
-				update_flags_zn(REG(0)));
-		}
+		return SEQ6(
+			SETL("a", DUP(a)),
+			SETL("b", DUP(b)),
+			set,
+			SETG("cf", is_sub ? sub_carry(VARL("a"), VARL("b")) : add_carry(VARL("a"), VARL("b"), with_carry)),
+			SETG("vf", (is_sub ? sub_overflow : add_overflow)(VARL("a"), VARL("b"), REG(0))),
+			update_flags_zn(REG(0)));
 	}
 	return set;
 }
@@ -550,6 +568,31 @@ static RzILOpEffect *uxt16(cs_insn *insn, bool is_thumb) {
 	return write_reg(REGID(0), LET("x", src, APPEND(h, l)));
 }
 
+/**
+ * Capstone: ARM_INS_CMP, ARM_INS_CMN
+ * ARM: cmp, cmn
+ */
+static RzILOpEffect *cmp(cs_insn *insn, bool is_thumb) {
+	if (!ISREG(0)) {
+		return NULL;
+	}
+	bool is_sub = insn->id == ARM_INS_CMP;
+	RzILOpBitVector *a = ARG(0);
+	RzILOpBitVector *b = ARG(1);
+	if (!a || !b) {
+		rz_il_op_pure_free(a);
+		rz_il_op_pure_free(b);
+		return NULL;
+	}
+	return SEQ6(
+		SETL("a", a),
+		SETL("b", b),
+		SETL("res", is_sub ? SUB(VARL("a"), VARL("b")) : ADD(VARL("a"), VARL("b"))),
+		SETG("cf", is_sub ? sub_carry(VARL("a"), VARL("b")) : add_carry(VARL("a"), VARL("b"), false)),
+		SETG("vf", (is_sub ? sub_overflow : add_overflow)(VARL("a"), VARL("b"), VARL("res"))),
+		update_flags_zn(VARL("res")));
+}
+
 static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb) {
 	switch (insn->id) {
 	case ARM_INS_B: {
@@ -589,6 +632,9 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_UXTB16:
 	case ARM_INS_UXTAB16:
 		return uxt16(insn, is_thumb);
+	case ARM_INS_CMP:
+	case ARM_INS_CMN:
+		return cmp(insn, is_thumb);
 	default:
 		return NULL;
 	}

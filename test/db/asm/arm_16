@@ -223,24 +223,24 @@ d "cdp2 p2, 5, c4, c8, c0, 7" 58fee042
 ad "clrex" bff32f8f
 d "clz r8, sb" b9fa89f8
 a "clz r8, r9" b9fa89f8
-d "cmn.w r8, 0x26800" 18f51a3f
+d "cmn.w r8, 0x26800" 18f51a3f 0x0 (seq (set a (var r8)) (set b (bv 32 0x26800)) (set res (+ (var a) (var b))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmn r8, 0x26800" 18f51a3f
-ad "cmn r2, r3" da42
+ad "cmn r2, r3" da42 0x0 (seq (set a (var r2)) (set b (var r3)) (set res (+ (var a) (var b))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 d "cmn.w r8, r2" 18eb020f
 a "cmn r8, r2" 18eb020f
-d "cmn.w r1, r3, asr 30" 11eba37f
+d "cmn.w r1, r3, asr 30" 11eba37f 0x0 (seq (set a (var r1)) (set b (>> (var r3) (bv 5 0x1e) (msb (var r3)))) (set res (+ (var a) (var b))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmn r1, r3, asr 30" 11eba37f
 ad "cmn.w r2, r5" 12eb050f
-ad "cmp r3, 0x73" 732b
-d "cmp.w r8, -0x54545455" b8f1ab3f # 0xabababab
+ad "cmp r3, 0x73" 732b 0x0 (seq (set a (var r3)) (set b (bv 32 0x73)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+d "cmp.w r8, -0x54545455" b8f1ab3f 0x0 (seq (set a (var r8)) (set b (bv 32 0xabababab)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmp r8, -0x54545455" b8f1ab3f # 0xabababab
 ad "cmp.w r6, 0x23" b6f1230f
 ad "cmp r3, r4" a342
-d "cmp sb, r8" c145
+d "cmp sb, r8" c145 0x0 (seq (set a (var r9)) (set b (var r8)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmp r9, r8" c145
-d "cmp.w r3, r6, asr 29" b3eb667f
+d "cmp.w r3, r6, asr 29" b3eb667f 0x0 (seq (set a (var r3)) (set b (>> (var r6) (bv 5 0x1d) (msb (var r6)))) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmp r3, r6, asr 29" b3eb667f
-ad "cmp.w r2, r1" b2eb010f
+ad "cmp.w r2, r1" b2eb010f 0x0 (seq (set a (var r2)) (set b (var r1)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 ad "cmp.w r8, r3" b8eb030f
 ad "cpsie aif" 67b6
 ad "cpsid a" 74b6
@@ -1097,7 +1097,7 @@ a "usub16 r5, r7" d5fa47f5
 ad "usub8 r3, r6, r1" c6fa41f3
 d "usub8 r2, r2, r5" c2fa45f2
 a "usub8 r2, r5" c2fa45f2
-d "uxtab r3, sb, r1" 59fa81f3
+d "uxtab r3, sb, r1" 59fa81f3 0x0 (set r3 (+ (var r9) (cast 32 false (cast 8 false (var r1)))))
 a "uxtab r3, r9, r1" 59fa81f3
 d "uxtab r6, r6, r4" 56fa84f6
 a "uxtab r6, r4" 56fa84f6
@@ -1108,28 +1108,28 @@ d "uxtab16 r2, r2, r5" 32fa85f2
 a "uxtab16 r2, r5" 32fa85f2
 d "uxtab16 r7, sb, r1, ror 24" 39fab1f7
 a "uxtab16 r7, r9, r1, ror 24" 39fab1f7
-d "uxtah r3, r2, sb" 12fa89f3
+d "uxtah r3, r2, sb" 12fa89f3 0x0 (set r3 (+ (var r2) (cast 32 false (cast 16 false (var r9)))))
 a "uxtah r3, r2, r9" 12fa89f3
 d "uxtah r7, r7, r1" 17fa81f7
 a "uxtah r7, r1" 17fa81f7
 d "uxtah r3, sb, r2, ror 8" 19fa92f3
 a "uxtah r3, r9, r2, ror 8" 19fa92f3
-ad "uxtb r3, r5" ebb2
+ad "uxtb r3, r5" ebb2 0x0 (set r3 (cast 32 false (cast 8 false (var r5))))
 d "uxtb.w r2, sb" 5ffa89f2
 a "uxtb r2, r9" 5ffa89f2
 d "uxtb.w r6, r3, ror 24" 5ffab3f6
 a "uxtb r6, r3, ror 24" 5ffab3f6
 ad "uxtb.w r1, r5" 5ffa85f1
 a "uxtb r1, r5, ror 0" 5ffa85f1
-ad "uxtb16 r3, r5" 3ffa85f3
+ad "uxtb16 r3, r5" 3ffa85f3 0x0 (set r3 (let x (var r5) (append (cast 16 false (cast 8 false (>> (var x) (bv 5 0x10) false))) (cast 16 false (cast 8 false (var x))))))
 d "uxtb16 sb, r1, ror 16" 3ffaa1f9
 a "uxtb16 r9, r1, ror 16" 3ffaa1f9
-ad "uxth r2, r3" 9ab2
+ad "uxth r2, r3" 9ab2 0x0 (set r2 (cast 32 false (cast 16 false (var r3))))
 d "uxth.w sb, r2" 1ffa82f9
 a "uxth r9, r2" 1ffa82f9
 d "uxth.w r3, r4, ror 8" 1ffa94f3
 a "uxth r3, r4, ror 8" 1ffa94f3
-ad "uxth.w r6, r2" 1ffa82f6
+ad "uxth.w r6, r2" 1ffa82f6 0x0 (set r6 (cast 32 false (cast 16 false (var r2))))
 a "uxth r6, r2, ror 0" 1ffa82f6
 ad "wfe" 20bf
 ad "wfe.w" aff30280
