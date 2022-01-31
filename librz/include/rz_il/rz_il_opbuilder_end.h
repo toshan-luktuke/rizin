@@ -48,6 +48,7 @@
 #undef VARLP
 #undef SETG
 #undef SETL
+#undef LET
 
 #undef UNSIGNED
 #undef APPEND

@@ -153,24 +153,15 @@ static RZ_NULLABLE RzILOpBitVector *shift(RzILOpBitVector *val, arm_shifter type
  * \p carry_out filled with the carry value of NULL if it does not change
  */
 static RzILOpBitVector *arg(cs_insn *insn, bool is_thumb, int n, RZ_NULLABLE RzILOpBool **carry_out) {
-	RzILOpBitVector *r;
 	if (carry_out) {
 		*carry_out = NULL;
 	}
 	cs_arm_op *op = &insn->detail->arm.operands[n];
 	switch (op->type) {
-	case ARM_OP_REG:
-		r = REG(n);
-#if 0
-		if (ISSHIFTED(n)) {
-			sprintf(buf, "%u,%s,%s",
-				LSHIFT2(n),
-				rz_str_get_null(cs_reg_name(*handle,
-					insn->detail->arm.operands[n].reg)),
-				DECODE_SHIFT(n));
-		} else {
-#endif
-		return r;
+	case ARM_OP_REG: {
+		RzILOpBitVector *r = REG(n);
+		return r ? shift(r, op->shift.type, op->shift.value) : NULL;
+	}
 	case ARM_OP_IMM: {
 		ut32 imm = IMM(n);
 		if (carry_out) {
@@ -504,6 +495,61 @@ static RzILOpEffect *eor(cs_insn *insn, bool is_thumb) {
 	return eff;
 }
 
+/**
+ * Capstone: ARM_INS_UXTB, ARM_INS_UXTH, ARM_INS_UXTAB, ARM_INS_UXTAH
+ * ARM: uxtb, uxth, uxtab, uxtah
+ */
+static RzILOpEffect *uxt(cs_insn *insn, bool is_thumb) {
+	if (!ISREG(0)) {
+		return NULL;
+	}
+	bool is_add = insn->id == ARM_INS_UXTAB || insn->id == ARM_INS_UXTAH || insn->id == ARM_INS_UXTAB16;
+	RzILOpBitVector *src = ARG(is_add ? 2 : 1);
+	if (!src) {
+		return NULL;
+	}
+	ut32 src_bits = (insn->id == ARM_INS_UXTH || insn->id == ARM_INS_UXTAH) ? 16 : 8;
+	RzILOpBitVector *val = UNSIGNED(32, UNSIGNED(src_bits, src));
+	if (is_add) {
+		RzILOpBitVector *b = ARG(1);
+		if (!b) {
+			rz_il_op_pure_free(val);
+			return NULL;
+		}
+		val = ADD(b, val);
+	}
+	return write_reg(REGID(0), val);
+}
+
+/**
+ * Capstone: ARM_INS_UXTB16, ARM_INS_UXTAB16
+ * ARM: uxtb16, uxtab16
+ */
+static RzILOpEffect *uxt16(cs_insn *insn, bool is_thumb) {
+	if (!ISREG(0)) {
+		return NULL;
+	}
+	bool is_add = insn->id == ARM_INS_UXTAB16;
+	RzILOpBitVector *src = ARG(is_add ? 2 : 1);
+	if (!src) {
+		return NULL;
+	}
+	RzILOpBitVector *l = UNSIGNED(16, UNSIGNED(8, VARLP("x")));
+	RzILOpBitVector *h = UNSIGNED(16, UNSIGNED(8, SHIFTR0(VARLP("x"), UN(5, 16))));
+	if (is_add) {
+		RzILOpBitVector *b = ARG(1);
+		if (!b) {
+			rz_il_op_pure_free(src);
+			rz_il_op_pure_free(l);
+			rz_il_op_pure_free(h);
+			return NULL;
+		}
+		l = ADD(UNSIGNED(16, b), l);
+		h = ADD(UNSIGNED(16, SHIFTR0(DUP(b), UN(5, 16))), h);
+	}
+	return write_reg(REGID(0), LET("x", src, APPEND(h, l)));
+}
+
 static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb) {
 	switch (insn->id) {
 	case ARM_INS_B: {
@@ -535,6 +581,14 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 		return str(insn, is_thumb);
 	case ARM_INS_EOR:
 		return eor(insn, is_thumb);
+	case ARM_INS_UXTB:
+	case ARM_INS_UXTAB:
+	case ARM_INS_UXTH:
+	case ARM_INS_UXTAH:
+		return uxt(insn, is_thumb);
+	case ARM_INS_UXTB16:
+	case ARM_INS_UXTAB16:
+		return uxt16(insn, is_thumb);
 	default:
 		return NULL;
 	}
