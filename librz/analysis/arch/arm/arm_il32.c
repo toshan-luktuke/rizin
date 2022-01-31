@@ -76,9 +76,10 @@ static RzILOpBitVector *read_reg(ut64 pc, arm_reg reg) {
 }
 
 #define PC(addr, is_thumb) ((addr + (is_thumb ? 4 : 8)) & ~3)
-#define REG(n)             read_reg(PC(insn->address, is_thumb), REGID(n))
-#define MEMBASE(x)         read_reg(PC(insn->address, is_thumb), insn->detail->arm.operands[x].mem.base)
-#define MEMINDEX(x)        read_reg(PC(insn->address, is_thumb), insn->detail->arm.operands[x].mem.index)
+#define REG_VAL(id)        read_reg(PC(insn->address, is_thumb), id)
+#define REG(n)             REG_VAL(REGID(n))
+#define MEMBASE(x)         REG_VAL(insn->detail->arm.operands[x].mem.base)
+#define MEMINDEX(x)        REG_VAL(insn->detail->arm.operands[x].mem.index)
 
 /**
  * IL to write the given capstone reg
@@ -593,6 +594,58 @@ static RzILOpEffect *cmp(cs_insn *insn, bool is_thumb) {
 		update_flags_zn(VARL("res")));
 }
 
+/**
+ * Capstone: ARM_INS_STMDB, ARM_INS_PUSH
+ * ARM: stmdb (stmfb), push
+ */
+static RzILOpEffect *stmdb(cs_insn *insn, bool is_thumb) {
+	size_t op_first;
+	arm_reg ptr_reg;
+	bool writeback;
+	if (insn->id == ARM_INS_PUSH) {
+		op_first = 0;
+		ptr_reg = ARM_REG_SP;
+		writeback = true;
+	} else { // ARM_INS_STMDB
+		if (!ISREG(0)) {
+			return NULL;
+		}
+		op_first = 1;
+		ptr_reg = REGID(0);
+		writeback = insn->detail->arm.writeback;
+	}
+	size_t op_count = OPCOUNT() - op_first;
+	if (!op_count) {
+		return NOP;
+	}
+	RzILOpBitVector *ptr = REG_VAL(ptr_reg);
+	if (!ptr) {
+		return NULL;
+	}
+	RzILOpEffect *eff = NULL;
+	// build up in reverse order so the result recurses in the second arg of seq (for tail-call optimization)
+	if (writeback) {
+		eff = write_reg(ptr_reg, SUB(DUP(ptr), U32(op_count * 4)));
+	}
+	for (size_t i = 0; i < op_count; i++) {
+		size_t idx = op_first + (op_count - 1 - i);
+		RzILOpPure *val;
+		if (!ISREG(idx) || !(val = REG(idx))) {
+			rz_il_op_pure_free(ptr);
+			rz_il_op_effect_free(eff);
+			return NULL;
+		}
+		RzILOpEffect *store = STOREW(SUB(DUP(ptr), U32((op_count - i) * 4)), val);
+		if (!eff) {
+			eff = store;
+		} else {
+			eff = SEQ2(store, eff);
+		}
+	}
+	rz_il_op_pure_free(ptr);
+	return eff;
+}
+
 static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb) {
 	switch (insn->id) {
 	case ARM_INS_B: {
@@ -635,6 +688,9 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_CMP:
 	case ARM_INS_CMN:
 		return cmp(insn, is_thumb);
+	case ARM_INS_PUSH:
+	case ARM_INS_STMDB:
+		return stmdb(insn, is_thumb);
 	default:
 		return NULL;
 	}
