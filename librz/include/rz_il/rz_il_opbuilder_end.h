@@ -22,6 +22,7 @@
 #undef INV
 #undef XOR
 #undef AND
+#undef OR
 
 #undef ADD
 #undef SUB

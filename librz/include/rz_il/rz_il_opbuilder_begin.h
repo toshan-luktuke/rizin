@@ -54,6 +54,7 @@
 #define INV(x)    rz_il_op_new_bool_inv(x)
 #define XOR(x, y) rz_il_op_new_bool_xor(x, y)
 #define AND(x, y) rz_il_op_new_bool_and(x, y)
+#define OR(x, y)  rz_il_op_new_bool_or(x, y)
 
 #define UNSIGNED(n, x)    rz_il_op_new_unsigned(n, x)
 #define APPEND(high, low) rz_il_op_new_append(high, low)

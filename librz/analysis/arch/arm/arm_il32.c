@@ -115,7 +115,7 @@ static RZ_NULLABLE RzILOpBool *cond(arm_cc c) {
 	case ARM_CC_HI:
 		return AND(VARG("cf"), INV(VARG("zf")));
 	case ARM_CC_LS:
-		return AND(INV(VARG("cf")), VARG("zf"));
+		return OR(INV(VARG("cf")), VARG("zf"));
 	case ARM_CC_GE:
 		return INV(XOR(VARG("nf"), VARG("vf")));
 	case ARM_CC_LT:
@@ -123,7 +123,7 @@ static RZ_NULLABLE RzILOpBool *cond(arm_cc c) {
 	case ARM_CC_GT:
 		return AND(INV(VARG("zf")), INV(XOR(VARG("nf"), VARG("vf"))));
 	case ARM_CC_LE:
-		return AND(VARG("zf"), XOR(VARG("nf"), VARG("vf")));
+		return OR(VARG("zf"), XOR(VARG("nf"), VARG("vf")));
 	case ARM_CC_AL:
 	default:
 		return NULL;
@@ -226,7 +226,7 @@ static RZ_OWN RzILOpBool *add_carry(RZ_OWN RzILOpBitVector *a, RZ_OWN RzILOpBitV
  * Carry resulting from a - b
  */
 static RZ_OWN RzILOpBool *sub_carry(RZ_OWN RzILOpBitVector *a, RZ_OWN RzILOpBitVector *b) {
-	return ULT(a, b);
+	return ULE(b, a);
 }
 
 /**
