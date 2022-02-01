@@ -635,16 +635,74 @@ static RzILOpEffect *stmdb(cs_insn *insn, bool is_thumb) {
 			rz_il_op_effect_free(eff);
 			return NULL;
 		}
-		RzILOpEffect *store = STOREW(SUB(DUP(ptr), U32((op_count - i) * 4)), val);
-		if (!eff) {
-			eff = store;
-		} else {
-			eff = SEQ2(store, eff);
-		}
+		RzILOpEffect *store = STOREW(SUB(DUP(ptr), U32((i + 1) * 4)), val);
+		eff = eff ? SEQ2(store, eff) : store;
 	}
 	rz_il_op_pure_free(ptr);
 	return eff;
 }
+
+/**
+ * Capstone: ARM_INS_LDM, ARM_INS_POP
+ * ARM: ldm (ldmia, ldmfd), pop
+ */
+static RzILOpEffect *ldm(cs_insn *insn, bool is_thumb) {
+	size_t op_first;
+	arm_reg ptr_reg;
+	bool writeback;
+	if (insn->id == ARM_INS_POP) {
+		op_first = 0;
+		ptr_reg = ARM_REG_SP;
+		writeback = true;
+	} else { // ARM_INS_LDM
+		if (!ISREG(0)) {
+			return NULL;
+		}
+		op_first = 1;
+		ptr_reg = REGID(0);
+		writeback = insn->detail->arm.writeback;
+	}
+	size_t op_count = OPCOUNT() - op_first;
+	if (!op_count) {
+		return NOP;
+	}
+	RzILOpBitVector *ptr = REG_VAL(ptr_reg);
+	if (!ptr) {
+		return NULL;
+	}
+	RzILOpEffect *eff = NULL;
+	// build up in reverse order so the result recurses in the second arg of seq (for tail-call optimization)
+	for (size_t i = 0; i < op_count; i++) {
+		size_t idx = op_first + (op_count - 1 - i);
+		if (ISREG(idx) && REGID(idx) == ARM_REG_PC) {
+			// jmp goes last
+			eff = JMP(VARL("tgt"));
+		}
+	}
+	if (writeback) {
+		RzILOpEffect *wb = write_reg(ptr_reg, ADD(DUP(ptr), U32(op_count * 4)));
+		eff = eff ? SEQ2(wb, eff) : wb;
+	}
+	for (size_t i = 0; i < op_count; i++) {
+		size_t idx = op_first + (op_count - 1 - i);
+		if (!ISREG(idx)) {
+			rz_il_op_pure_free(ptr);
+			rz_il_op_effect_free(eff);
+			return NULL;
+		}
+		RzILOpPure *val = LOADW(32, ADD(DUP(ptr), U32((op_count - i - 1) * 4)));
+		RzILOpEffect *load;
+		if (REGID(idx) == ARM_REG_PC) {
+			load = SETL("tgt", val);
+		} else {
+			load = write_reg(REGID(idx), val);
+		}
+		eff = eff ? SEQ2(load, eff) : load;
+	}
+	rz_il_op_pure_free(ptr);
+	return eff;
+}
+
 
 static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb) {
 	switch (insn->id) {
@@ -691,6 +749,9 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_PUSH:
 	case ARM_INS_STMDB:
 		return stmdb(insn, is_thumb);
+	case ARM_INS_POP:
+	case ARM_INS_LDM:
+		return ldm(insn, is_thumb);
 	default:
 		return NULL;
 	}
