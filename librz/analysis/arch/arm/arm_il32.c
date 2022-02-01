@@ -703,13 +703,30 @@ static RzILOpEffect *ldm(cs_insn *insn, bool is_thumb) {
 	return eff;
 }
 
+/**
+ * Capstone: ARM_INS_BL, ARM_INS_BLX
+ * ARM: bl, blx
+ */
+static RzILOpEffect *bl(cs_insn *insn, bool is_thumb) {
+	RzILOpBitVector *tgt = ARG(0);
+	if (!tgt) {
+		return NULL;
+	}
+	return SEQ2(
+		SETG("lr", U32(((insn->address + insn->size) & ~1) | (is_thumb ? 1 : 0))),
+		JMP(tgt));
+}
 
 static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb) {
 	switch (insn->id) {
-	case ARM_INS_B: {
+	case ARM_INS_B:
+	case ARM_INS_BX: {
 		RzILOpBitVector *dst = ARG(0);
 		return dst ? JMP(dst) : NULL;
 	}
+	case ARM_INS_BL:
+	case ARM_INS_BLX:
+		return bl(insn, is_thumb);
 	case ARM_INS_MOV:
 	case ARM_INS_MOVW:
 		return mov(insn, is_thumb);
