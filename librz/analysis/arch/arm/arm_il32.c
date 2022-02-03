@@ -130,18 +130,24 @@ static RZ_NULLABLE RzILOpBool *cond(arm_cc c) {
 	}
 }
 
-static RZ_NULLABLE RzILOpBitVector *shift(RzILOpBitVector *val, arm_shifter type, ut8 dist) {
+static RZ_NULLABLE RzILOpBitVector *shift(RzILOpBitVector *val, RZ_NULLABLE RzILOpBool **carry_out, arm_shifter type, RzILOpBitVector *dist) {
 	switch (type) {
 	case ARM_SFT_ASR:
-		return SHIFTRA(val, UN(5, dist));
+		return SHIFTRA(val, dist);
 	case ARM_SFT_LSL:
-		return SHIFTL0(val, UN(5, dist));
+		if (carry_out) {
+			*carry_out = MSB(SHIFTL0(UNSIGNED(33, DUP(val)), DUP(dist)));
+		}
+		return SHIFTL0(val, dist);
 	case ARM_SFT_LSR:
-		return SHIFTR0(val, UN(5, dist));
+		if (carry_out) {
+			*carry_out = LSB(SHIFTR0(DUP(val), SUB(DUP(dist), UN(5, 1))));
+		}
+		return SHIFTR0(val, dist);
 	case ARM_SFT_ROR:
 		return LOGOR(
-			SHIFTR0(val, UN(5, dist)),
-			SHIFTL0(DUP(val), UN(5, 32 - dist)));
+			SHIFTR0(val, dist),
+			SHIFTL0(DUP(val), NEG(DUP(dist))));
 	case ARM_SFT_RRX:
 		return SHIFTR(VARG("cf"), val, UN(5, 1));
 	default:
@@ -161,7 +167,7 @@ static RzILOpBitVector *arg(cs_insn *insn, bool is_thumb, int n, RZ_NULLABLE RzI
 	switch (op->type) {
 	case ARM_OP_REG: {
 		RzILOpBitVector *r = REG(n);
-		return r ? shift(r, op->shift.type, op->shift.value) : NULL;
+		return r ? shift(r, carry_out, op->shift.type, UN(5, op->shift.value)) : NULL;
 	}
 	case ARM_OP_IMM: {
 		ut32 imm = IMM(n);
@@ -188,7 +194,7 @@ static RzILOpBitVector *arg(cs_insn *insn, bool is_thumb, int n, RZ_NULLABLE RzI
 			addr = SUB(addr, U32(-disp));
 		}
 		if (op->mem.index != ARM_REG_INVALID) {
-			addr = ADD(addr, shift(MEMINDEX(n), op->shift.type, op->shift.value));
+			addr = ADD(addr, shift(MEMINDEX(n), carry_out, op->shift.type, UN(5, op->shift.value)));
 		}
 		return addr;
 	}
@@ -244,18 +250,40 @@ static RZ_OWN RzILOpBool *sub_overflow(RZ_OWN RzILOpBitVector *a, RZ_OWN RzILOpB
 }
 
 /**
- * Capstone: ARM_INS_MOV, ARM_INS_MOVW
- * ARM: mov, movs, movw
+ * Capstone: ARM_INS_MOV, ARM_INS_MOVW, ARM_INS_LSL, ARM_INS_LSR
+ * ARM: mov, movs, movw, lsl, lsls, lsr, lsrs
  */
 static RzILOpEffect *mov(cs_insn *insn, bool is_thumb) {
 	if (!ISREG(0) || (!ISIMM(1) && !ISREG(1))) {
 		return NULL;
 	}
+	// all of lsl, lsr, etc. are really just mov/movs, but capstone encodes them differently:
+	bool is_shift_alias = insn->id == ARM_INS_LSL || insn->id == ARM_INS_LSR;
 	bool update_flags = insn->detail->arm.update_flags;
 	RzILOpBool *carry;
-	RzILOpPure *val = ARG_C(1, update_flags ? &carry : NULL);
+	RzILOpPure *val = ARG_C(1, update_flags && !is_shift_alias ? &carry : NULL);
 	if (!val) {
 		return NULL;
+	}
+	if (is_shift_alias) {
+		RzILOpPure *dist = ARG(2);
+		if (!dist) {
+			rz_il_op_pure_free(val);
+			return NULL;
+		}
+		arm_shifter sft;
+		switch (insn->id) {
+		case ARM_INS_LSL:
+			sft = ARM_SFT_LSL;
+			break;
+		case ARM_INS_LSR:
+			sft = ARM_SFT_LSR;
+			break;
+		default:
+			rz_il_op_pure_free(val);
+			return NULL;
+		}
+		val = shift(val, update_flags ? &carry : NULL, sft, UNSIGNED(5, dist));
 	}
 	if (REGID(0) == ARM_REG_PC) {
 		if (insn->detail->arm.update_flags) {
@@ -270,7 +298,7 @@ static RzILOpEffect *mov(cs_insn *insn, bool is_thumb) {
 		goto err;
 	}
 	if (update_flags) {
-		RzILOpEffect *zn = update_flags_zn(DUP(val));
+		RzILOpEffect *zn = update_flags_zn(REG(0));
 		return carry
 			? SEQ3(eff, SETG("cf", carry), zn)
 			: SEQ2(eff, zn);
@@ -770,6 +798,8 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 		return bl(insn, is_thumb);
 	case ARM_INS_MOV:
 	case ARM_INS_MOVW:
+	case ARM_INS_LSL:
+	case ARM_INS_LSR:
 		return mov(insn, is_thumb);
 	case ARM_INS_MOVT:
 		return movt(insn, is_thumb);

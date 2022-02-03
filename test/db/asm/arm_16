@@ -448,7 +448,7 @@ d "mla r6, r2, sl, sp" 02fb0ad6
 a "mla r6, r2, r10, r13" 02fb0ad6
 d "mls r6, sl, r2, r5" 0afb1256
 a "mls r6, r10, r2, r5" 0afb1256
-d "movs r6, 0x26" 2626 0x0 (seq (set r6 (bv 32 0x26)) (set zf (is_zero (bv 32 0x26))) (set nf (msb (bv 32 0x26))))
+d "movs r6, 0x26" 2626 0x0 (seq (set r6 (bv 32 0x26)) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
 a "mov r6, 0x26" 2626
 d "mov.w r7, -0x4dff4e00" 4ff0b227 # 0xb200b200
 a "mov r7, 0xb200b200" 4ff0b227
@@ -458,9 +458,9 @@ ad "mov.w r2, 0x2b" 4ff02b02
 ad "movw r6, 0x248f" 42f28f46
 d "mov sb, ip" e146 0x0 (set r9 (var r12))
 a "mov r9, r12" e146
-ad "movs r6, r2" 1600 0x0 (seq (set r6 (var r2)) (set zf (is_zero (var r2))) (set nf (msb (var r2))))
+ad "movs r6, r2" 1600 0x0 (seq (set r6 (var r2)) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
 d "movs.w r3, ip" 5fea0c03
-a "movs r3, r12" 5fea0c03 0x0 (seq (set r3 (var r12)) (set zf (is_zero (var r12))) (set nf (msb (var r12))))
+a "movs r3, r12" 5fea0c03 0x0 (seq (set r3 (var r12)) (set zf (is_zero (var r3))) (set nf (msb (var r3))))
 ad "movs.w r2, r3" 5fea0302
 d "mov.w ip, r5" 4fea050c
 a "mov.w r12, r5" 4fea050c
