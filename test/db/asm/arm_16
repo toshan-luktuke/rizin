@@ -231,16 +231,16 @@ a "cmn r8, r2" 18eb020f
 d "cmn.w r1, r3, asr 30" 11eba37f 0x0 (seq (set a (var r1)) (set b (>> (var r3) (bv 5 0x1e) (msb (var r3)))) (set res (+ (var a) (var b))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmn r1, r3, asr 30" 11eba37f
 ad "cmn.w r2, r5" 12eb050f
-ad "cmp r3, 0x73" 732b 0x0 (seq (set a (var r3)) (set b (bv 32 0x73)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
-d "cmp.w r8, -0x54545455" b8f1ab3f 0x0 (seq (set a (var r8)) (set b (bv 32 0xabababab)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+ad "cmp r3, 0x73" 732b 0x0 (seq (set a (var r3)) (set b (bv 32 0x73)) (set res (- (var a) (var b))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+d "cmp.w r8, -0x54545455" b8f1ab3f 0x0 (seq (set a (var r8)) (set b (bv 32 0xabababab)) (set res (- (var a) (var b))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmp r8, -0x54545455" b8f1ab3f # 0xabababab
 ad "cmp.w r6, 0x23" b6f1230f
 ad "cmp r3, r4" a342
-d "cmp sb, r8" c145 0x0 (seq (set a (var r9)) (set b (var r8)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+d "cmp sb, r8" c145 0x0 (seq (set a (var r9)) (set b (var r8)) (set res (- (var a) (var b))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmp r9, r8" c145
-d "cmp.w r3, r6, asr 29" b3eb667f 0x0 (seq (set a (var r3)) (set b (>> (var r6) (bv 5 0x1d) (msb (var r6)))) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+d "cmp.w r3, r6, asr 29" b3eb667f 0x0 (seq (set a (var r3)) (set b (>> (var r6) (bv 5 0x1d) (msb (var r6)))) (set res (- (var a) (var b))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 a "cmp r3, r6, asr 29" b3eb667f
-ad "cmp.w r2, r1" b2eb010f 0x0 (seq (set a (var r2)) (set b (var r1)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+ad "cmp.w r2, r1" b2eb010f 0x0 (seq (set a (var r2)) (set b (var r1)) (set res (- (var a) (var b))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 ad "cmp.w r8, r3" b8eb030f
 ad "cpsie aif" 67b6
 ad "cpsid a" 74b6
@@ -507,9 +507,9 @@ ad "nop" 00bf
 ad "nop.w" aff30080
 d "orn r6, sl, -0x54545455" 6af0ab36 # 0xabababab
 a "orn r6, r10, 0xabababab" 6af0ab36
-d "orns r2, r3, 0x12800" 73f49432
+d "orns r2, r3, 0x12800" 73f49432 0x0 (seq (set r2 (| (var r3) (~ (bv 32 0x12800)))) (set cf false) (set zf (is_zero (var r2))) (set nf (msb (var r2))))
 a "orns r2, r3, 0x00012800" 73f49432
-d "orn sl, fp, r8" 6bea080a
+d "orn sl, fp, r8" 6bea080a 0x0 (set r10 (| (var r11) (~ (var r8))))
 a "orn r10, r11, r8" 6bea080a
 ad "orns r3, r2, r7" 72ea0703
 d "orn r1, r1, r2" 61ea0201

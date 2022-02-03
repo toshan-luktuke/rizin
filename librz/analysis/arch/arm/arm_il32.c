@@ -494,10 +494,10 @@ static RzILOpEffect *str(cs_insn *insn, bool is_thumb) {
 }
 
 /**
- * Capstone: ARM_INS_EOR
- * ARM: eor, eors
+ * Capstone: ARM_INS_AND, ARM_INS_ORR, ARM_INS_EOR
+ * ARM: and, ands, orr, orrs, orn, orns, eor, eors
  */
-static RzILOpEffect *eor(cs_insn *insn, bool is_thumb) {
+static RzILOpEffect *bitwise(cs_insn *insn, bool is_thumb) {
 	if (!ISREG(0)) {
 		return NULL;
 	}
@@ -511,7 +511,26 @@ static RzILOpEffect *eor(cs_insn *insn, bool is_thumb) {
 		rz_il_op_pure_free(carry);
 		return NULL;
 	}
-	RzILOpBitVector *res = LOGXOR(a, b);
+	RzILOpBitVector *res;
+	switch (insn->id) {
+	case ARM_INS_AND:
+		res = LOGAND(a, b);
+		break;
+	case ARM_INS_ORR:
+		res = LOGOR(a, b);
+		break;
+	case ARM_INS_ORN:
+		res = LOGOR(a, LOGNOT(b));
+		break;
+	case ARM_INS_EOR:
+		res = LOGXOR(a, b);
+		break;
+	default:
+		rz_il_op_pure_free(a);
+		rz_il_op_pure_free(b);
+		rz_il_op_pure_free(carry);
+		return NULL;
+	}
 	if (REGID(0) == ARM_REG_PC) {
 		if (insn->detail->arm.update_flags) {
 			// TODO: ALUExceptionReturn()
@@ -774,8 +793,11 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_STRBT:
 	case ARM_INS_STRHT:
 		return str(insn, is_thumb);
+	case ARM_INS_AND:
+	case ARM_INS_ORR:
+	case ARM_INS_ORN:
 	case ARM_INS_EOR:
-		return eor(insn, is_thumb);
+		return bitwise(insn, is_thumb);
 	case ARM_INS_UXTB:
 	case ARM_INS_UXTAB:
 	case ARM_INS_UXTH:
