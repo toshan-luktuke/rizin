@@ -266,27 +266,30 @@ static RzILOpEffect *mov(cs_insn *insn, bool is_thumb) {
 	if (!ISREG(0) || (!ISIMM(1) && !ISREG(1))) {
 		return NULL;
 	}
-	// all of lsl, lsr, etc. are really just mov/movs, but capstone encodes them differently:
-	arm_shifter shift_alias;
-	switch (insn->id) {
-	case ARM_INS_LSL:
-		shift_alias = ARM_SFT_LSL;
-		break;
-	case ARM_INS_LSR:
-		shift_alias = ARM_SFT_LSR;
-		break;
-	case ARM_INS_ASR:
-		shift_alias = ARM_SFT_ASR;
-		break;
-	case ARM_INS_RRX:
-		shift_alias = ARM_SFT_RRX;
-		break;
-	case ARM_INS_ROR:
-		shift_alias = ARM_SFT_ROR;
-		break;
-	default:
-		shift_alias = ARM_SFT_INVALID;
-		break;
+	// All of lsl, lsr, etc. are really just mov/movs, but capstone encodes them differently,
+	// with the shift distance as extra (third) operand. But it doesn't do that always, sometimes the shift is also still
+	// embedded in the second operand.
+	arm_shifter shift_alias = ARM_SFT_INVALID;
+	if (insn->detail->arm.operands[1].shift.type == ARM_SFT_INVALID) {
+		switch (insn->id) {
+		case ARM_INS_LSL:
+			shift_alias = ARM_SFT_LSL;
+			break;
+		case ARM_INS_LSR:
+			shift_alias = ARM_SFT_LSR;
+			break;
+		case ARM_INS_ASR:
+			shift_alias = ARM_SFT_ASR;
+			break;
+		case ARM_INS_RRX:
+			shift_alias = ARM_SFT_RRX;
+			break;
+		case ARM_INS_ROR:
+			shift_alias = ARM_SFT_ROR;
+			break;
+		default:
+			break;
+		}
 	}
 	bool update_flags = insn->detail->arm.update_flags;
 	RzILOpBool *carry;
