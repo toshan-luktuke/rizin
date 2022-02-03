@@ -62,6 +62,7 @@
 
 #define ADD(x, y)          rz_il_op_new_add(x, y)
 #define SUB(x, y)          rz_il_op_new_sub(x, y)
+#define MUL(x, y)          rz_il_op_new_mul(x, y)
 #define SHIFTL(f, v, dist) rz_il_op_new_shiftl(f, v, dist)
 #define SHIFTR(f, v, dist) rz_il_op_new_shiftr(f, v, dist)
 #define SHIFTL0(v, dist)   SHIFTL(IL_FALSE, v, dist)

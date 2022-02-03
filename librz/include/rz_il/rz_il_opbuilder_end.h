@@ -26,6 +26,7 @@
 
 #undef ADD
 #undef SUB
+#undef MUL
 #undef SHIFTL0
 #undef SHIFTR0
 #undef LOGAND

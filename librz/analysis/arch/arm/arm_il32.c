@@ -346,6 +346,28 @@ static RzILOpEffect *add_sub(cs_insn *insn, bool is_thumb) {
 }
 
 /**
+ * Capstone: ARM_INS_MUL
+ * ARM: mul, muls
+ */
+static RzILOpEffect *mul(cs_insn *insn, bool is_thumb) {
+	if (!ISREG(0)) {
+		return NULL;
+	}
+	RzILOpBitVector *a = ARG(OPCOUNT() > 2 ? 1 : 0);
+	RzILOpBitVector *b = ARG(OPCOUNT() > 2 ? 2 : 1);
+	if (!a || !b) {
+		rz_il_op_pure_free(a);
+		rz_il_op_pure_free(b);
+		return NULL;
+	}
+	RzILOpEffect *eff = write_reg(REGID(0), MUL(a, b));
+	if (!eff) {
+		return NULL;
+	}
+	return insn->detail->arm.update_flags ? SEQ2(eff, update_flags_zn(REG(0))) : eff;
+}
+
+/**
  * Capstone: ARM_INS_LDR, ARM_INS_LDRB, ARM_INS_LDRH, ARM_INS_LDRT, ARM_INS_LDRBT, ARM_INS_LDRHT
  * ARM: ldr, ldrb, ldrh, ldrt, ldrbt, ldrht
  */
@@ -736,6 +758,8 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_ADC:
 	case ARM_INS_SUB:
 		return add_sub(insn, is_thumb);
+	case ARM_INS_MUL:
+		return mul(insn, is_thumb);
 	case ARM_INS_LDR:
 	case ARM_INS_LDRB:
 	case ARM_INS_LDRH:

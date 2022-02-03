@@ -42,8 +42,9 @@ aB "mlane r3, r1, r3, r2" 91232310
 a "moveq r0, sl" 0a00a001
 a "movne r0, r9" 0900a011
 aB "mulne r3, r3, r0" 93000310
-a "mul r2, r3, r4" 930402e0
-a "mul r6, r2" 960206e0
+ad "mul r2, r3, r4" 930402e0 0x0 (set r2 (* (var r3) (var r4)))
+ad "mul r6, r6, r2" 960206e0 0x0 (set r6 (* (var r6) (var r2)))
+d "muls r0, r1, r2" 910210e0 0x0 (seq (set r0 (* (var r1) (var r2))) (set zf (is_zero (var r0))) (set nf (msb (var r0))))
 a "smull r4, r1, r2, r3" 9243c1e0
 a "smlal r4, r1, r2, r3" 9243e1e0
 a "smlabb r4, r7, r3, r1" 871304e1
@@ -123,7 +124,7 @@ d "adcs r0, r1, 0x2a" 2a00b1e2 0x0 (seq (set a (var r1)) (set b (bv 32 0x2a)) (s
 ad "adds r0, r1, 0x2a" 2a0091e2 0x0 (seq (set a (var r1)) (set b (bv 32 0x2a)) (set r0 (+ (var r1) (bv 32 0x2a))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var r0))))) (set zf (is_zero (var r0))) (set nf (msb (var r0))))
 d "sub sp, sp, 0x1c" 1cd04de2 0x0 (set sp (- (var sp) (bv 32 0x1c)))
 d "sub r6, r7, r5" 056047e0 0x0 (set r6 (- (var r7) (var r5)))
-d "subs r6, r7, r5" 056057e0 0x0 (seq (set a (var r7)) (set b (var r5)) (set r6 (- (var r7) (var r5))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var r6))))) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
+d "subs r6, r7, r5" 056057e0 0x0 (seq (set a (var r7)) (set b (var r5)) (set r6 (- (var r7) (var r5))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var r6))))) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
 d "andeq r0, r0, 1" 01000002
 d "andeq r3, r5, 0x80000000" 02310502
 d "andne r3, r3, r2" 02300310
@@ -145,11 +146,11 @@ d "bpl 0x1900" 3e06005a 0x0 (branch (! (var nf)) (jmp (bv 32 0x1900)) nop)
 d "bvs 0x1900" 3e06006a 0x0 (branch (var vf) (jmp (bv 32 0x1900)) nop)
 d "bvc 0x1900" 3e06007a 0x0 (branch (! (var vf)) (jmp (bv 32 0x1900)) nop)
 d "bhi 0x1900" 3e06008a 0x0 (branch (&& (var cf) (! (var zf))) (jmp (bv 32 0x1900)) nop)
-d "bls 0x1900" 3e06009a 0x0 (branch (&& (! (var cf)) (var zf)) (jmp (bv 32 0x1900)) nop)
+d "bls 0x1900" 3e06009a 0x0 (branch (|| (! (var cf)) (var zf)) (jmp (bv 32 0x1900)) nop)
 d "bge 0x1900" 3e0600aa 0x0 (branch (! (^^ (var nf) (var vf))) (jmp (bv 32 0x1900)) nop)
 d "blt 0x1900" 3e0600ba 0x0 (branch (^^ (var nf) (var vf)) (jmp (bv 32 0x1900)) nop)
 d "bgt 0x1900" 3e0600ca 0x0 (branch (&& (! (var zf)) (! (^^ (var nf) (var vf)))) (jmp (bv 32 0x1900)) nop)
-d "ble 0x1900" 3e0600da 0x0 (branch (&& (var zf) (^^ (var nf) (var vf))) (jmp (bv 32 0x1900)) nop)
+d "ble 0x1900" 3e0600da 0x0 (branch (|| (var zf) (^^ (var nf) (var vf))) (jmp (bv 32 0x1900)) nop)
 d "b 0x1900" 3e0600ea 0x0 (jmp (bv 32 0x1900))
 d "bxeq lr" 1eff2f01
 d "bxne lr" 1eff2f11
@@ -361,11 +362,11 @@ d "uxtb16 r1, r3" 7310cfe6 0x0 (set r1 (let x (var r3) (append (cast 16 false (c
 d "uxtb16 r1, r3, ror 8" 7314cfe6 0x0 (set r1 (let x (| (>> (var r3) (bv 5 0x8) false) (<< (var r3) (bv 5 0x18) false)) (append (cast 16 false (cast 8 false (>> (var x) (bv 5 0x10) false))) (cast 16 false (cast 8 false (var x))))))
 d "uxtab16 r1, r2, r3" 7310c2e6 0x0 (set r1 (let x (var r3) (append (+ (cast 16 false (>> (var r2) (bv 5 0x10) false)) (cast 16 false (cast 8 false (>> (var x) (bv 5 0x10) false)))) (+ (cast 16 false (var r2)) (cast 16 false (cast 8 false (var x)))))))
 d "uxtab16 r1, r2, r3, ror 8" 7314c2e6 0x0 (set r1 (let x (| (>> (var r3) (bv 5 0x8) false) (<< (var r3) (bv 5 0x18) false)) (append (+ (cast 16 false (>> (var r2) (bv 5 0x10) false)) (cast 16 false (cast 8 false (>> (var x) (bv 5 0x10) false)))) (+ (cast 16 false (var r2)) (cast 16 false (cast 8 false (var x)))))))
-d "cmp r1, 0x42" 420051e3 0x0 (seq (set a (var r1)) (set b (bv 32 0x42)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+d "cmp r1, 0x42" 420051e3 0x0 (seq (set a (var r1)) (set b (bv 32 0x42)) (set res (- (var a) (var b))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 d "cmn r1, 0x42" 420071e3 0x0 (seq (set a (var r1)) (set b (bv 32 0x42)) (set res (+ (var a) (var b))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
-d "cmp r1, r3" 030051e1 0x0 (seq (set a (var r1)) (set b (var r3)) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+d "cmp r1, r3" 030051e1 0x0 (seq (set a (var r1)) (set b (var r3)) (set res (- (var a) (var b))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 d "cmn r1, r3" 030071e1 0x0 (seq (set a (var r1)) (set b (var r3)) (set res (+ (var a) (var b))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
-d "cmp r1, r3, ror 8" 630451e1 0x0 (seq (set a (var r1)) (set b (| (>> (var r3) (bv 5 0x8) false) (<< (var r3) (bv 5 0x18) false))) (set res (- (var a) (var b))) (set cf (&& (ule (var a) (var b)) (! (== (var a) (var b))))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
+d "cmp r1, r3, ror 8" 630451e1 0x0 (seq (set a (var r1)) (set b (| (>> (var r3) (bv 5 0x8) false) (<< (var r3) (bv 5 0x18) false))) (set res (- (var a) (var b))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 d "cmn r1, r3, ror 8" 630471e1 0x0 (seq (set a (var r1)) (set b (| (>> (var r3) (bv 5 0x8) false) (<< (var r3) (bv 5 0x18) false))) (set res (+ (var a) (var b))) (set cf (msb (+ (cast 33 false (var a)) (cast 33 false (var b))))) (set vf (&& (! (^^ (msb (var a)) (msb (var b)))) (^^ (msb (var a)) (msb (var res))))) (set zf (is_zero (var res))) (set nf (msb (var res))))
 d "str pc, [sp, -4]!" 04f02de5 0x200 (seq (set sp (- (var sp) (bv 32 0x4))) (storew 0 (var sp) (bv 32 0x208)))
 d "str r3, [sp, -4]!" 04302de5 0x0 (seq (set sp (- (var sp) (bv 32 0x4))) (storew 0 (var sp) (var r3)))
