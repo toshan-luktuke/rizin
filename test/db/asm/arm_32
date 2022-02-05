@@ -125,6 +125,10 @@ ad "adds r0, r1, 0x2a" 2a0091e2 0x0 (seq (set a (var r1)) (set b (bv 32 0x2a)) (
 d "sub sp, sp, 0x1c" 1cd04de2 0x0 (set sp (- (var sp) (bv 32 0x1c)))
 d "sub r6, r7, r5" 056047e0 0x0 (set r6 (- (var r7) (var r5)))
 d "subs r6, r7, r5" 056057e0 0x0 (seq (set a (var r7)) (set b (var r5)) (set r6 (- (var r7) (var r5))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var r6))))) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
+d "rsb r6, r6, 0xc" 0c6066e2 0x0 (set r6 (- (bv 32 0xc) (var r6)))
+d "rsb r6, r7, r5" 056067e0 0x0 (set r6 (- (var r5) (var r7)))
+d "rsbs r6, r7, r5" 056077e0 0x0 (seq (set a (var r5)) (set b (var r7)) (set r6 (- (var r5) (var r7))) (set cf (ule (var b) (var a))) (set vf (&& (^^ (msb (var a)) (msb (var b))) (^^ (msb (var a)) (msb (var r6))))) (set zf (is_zero (var r6))) (set nf (msb (var r6))))
+
 d "andeq r0, r0, 1" 01000002
 d "andeq r3, r5, 0x80000000" 02310502
 d "andne r3, r3, r2" 02300310
