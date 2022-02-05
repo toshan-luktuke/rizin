@@ -553,8 +553,8 @@ static RzILOpEffect *str(cs_insn *insn, bool is_thumb) {
 }
 
 /**
- * Capstone: ARM_INS_AND, ARM_INS_ORR, ARM_INS_EOR
- * ARM: and, ands, orr, orrs, orn, orns, eor, eors
+ * Capstone: ARM_INS_AND, ARM_INS_ORR, ARM_INS_EOR, ARM_INS_BIC
+ * ARM: and, ands, orr, orrs, orn, orns, eor, eors, bic, bics
  */
 static RzILOpEffect *bitwise(cs_insn *insn, bool is_thumb) {
 	if (!ISREG(0)) {
@@ -583,6 +583,9 @@ static RzILOpEffect *bitwise(cs_insn *insn, bool is_thumb) {
 		break;
 	case ARM_INS_EOR:
 		res = LOGXOR(a, b);
+		break;
+	case ARM_INS_BIC:
+		res = LOGAND(a, LOGNOT(b));
 		break;
 	default:
 		rz_il_op_pure_free(a);
@@ -863,6 +866,7 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_ORR:
 	case ARM_INS_ORN:
 	case ARM_INS_EOR:
+	case ARM_INS_BIC:
 		return bitwise(insn, is_thumb);
 	case ARM_INS_UXTB:
 	case ARM_INS_UXTAB:
