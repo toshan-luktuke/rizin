@@ -259,8 +259,8 @@ static RZ_OWN RzILOpBool *sub_overflow(RZ_OWN RzILOpBitVector *a, RZ_OWN RzILOpB
 }
 
 /**
- * Capstone: ARM_INS_MOV, ARM_INS_MOVW, ARM_INS_LSL, ARM_INS_LSR, ARM_INS_ASR, ARM_INS_RRX, ARM_INS_ROR
- * ARM: mov, movs, movw, lsl, lsls, lsr, lsrs, asr, asrs, rrx, rrxs, ror, rors
+ * Capstone: ARM_INS_MOV, ARM_INS_MOVW, ARM_INS_LSL, ARM_INS_LSR, ARM_INS_ASR, ARM_INS_RRX, ARM_INS_ROR, ARM_INS_MVN
+ * ARM: mov, movs, movw, lsl, lsls, lsr, lsrs, asr, asrs, rrx, rrxs, ror, rors, mvn, mvns
  */
 static RzILOpEffect *mov(cs_insn *insn, bool is_thumb) {
 	if (!ISREG(0) || (!ISIMM(1) && !ISREG(1))) {
@@ -307,6 +307,9 @@ static RzILOpEffect *mov(cs_insn *insn, bool is_thumb) {
 			}
 		}
 		val = shift(val, update_flags ? &carry : NULL, shift_alias, dist ? UNSIGNED(5, dist) : NULL);
+	}
+	if (insn->id == ARM_INS_MVN) {
+		val = LOGNOT(val);
 	}
 	if (REGID(0) == ARM_REG_PC) {
 		if (insn->detail->arm.update_flags) {
@@ -826,6 +829,7 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_ASR:
 	case ARM_INS_RRX:
 	case ARM_INS_ROR:
+	case ARM_INS_MVN:
 		return mov(insn, is_thumb);
 	case ARM_INS_MOVT:
 		return movt(insn, is_thumb);
