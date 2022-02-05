@@ -618,6 +618,30 @@ static RzILOpEffect *bitwise(cs_insn *insn, bool is_thumb) {
 }
 
 /**
+ * Capstone: ARM_INS_TST
+ * ARM: tst
+ */
+static RzILOpEffect *tst(cs_insn *insn, bool is_thumb) {
+	RzILOpBitVector *a = ARG(0);
+	RzILOpBool *carry = NULL;
+	RzILOpBitVector *b = ARG_C(1, &carry);
+	if (!a || !b) {
+		rz_il_op_pure_free(a);
+		rz_il_op_pure_free(b);
+		rz_il_op_pure_free(carry);
+		return NULL;
+	}
+	RzILOpBitVector *res = LOGAND(a, b);
+	if (carry) {
+		return SEQ2(
+			SETG("cf", carry),
+			update_flags_zn(res));
+	} else {
+		return update_flags_zn(res);
+	}
+}
+
+/**
  * Capstone: ARM_INS_UXTB, ARM_INS_UXTH, ARM_INS_UXTAB, ARM_INS_UXTAH
  * ARM: uxtb, uxth, uxtab, uxtah
  */
@@ -868,6 +892,8 @@ static RzILOpEffect *il_unconditional(csh *handle, cs_insn *insn, bool is_thumb)
 	case ARM_INS_EOR:
 	case ARM_INS_BIC:
 		return bitwise(insn, is_thumb);
+	case ARM_INS_TST:
+		return tst(insn, is_thumb);
 	case ARM_INS_UXTB:
 	case ARM_INS_UXTAB:
 	case ARM_INS_UXTH:
